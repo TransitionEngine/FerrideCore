@@ -1,0 +1,17 @@
+[package]
+name = "ferride_core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+threed = { git = "https://github.com/DerGorn/threed.git" }
+env_logger = "0.10"
+log = "0.4"
+image = "0.25.1"
+winit = { version = "0.30", features = ["rwh_05"] }
+wgpu = "0.19.4"
+futures = "0.3.30"
+bytemuck = { version = "1.16.0", features = ["derive"] }
+repr-trait = "1.0.0"
