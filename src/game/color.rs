@@ -1,3 +1,7 @@
+pub mod exports {
+    pub use super::Color;
+}
+
 #[derive(Clone, Debug)]
 pub enum Color {
     RGBA(u8, u8, u8, u8),

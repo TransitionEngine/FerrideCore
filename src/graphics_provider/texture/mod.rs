@@ -1,6 +1,11 @@
 use std::{fs, num::NonZeroU32, path::Path};
 
 use image::GenericImageView;
+
+pub mod exports {
+    pub use super::DEFAULT_TEXTURE;
+}
+
 pub const DEFAULT_TEXTURE: &str = "Default Texture Provider Texture";
 
 pub struct TextureProvider {

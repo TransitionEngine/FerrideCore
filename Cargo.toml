@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-threed = { git = "https://github.com/DerGorn/threed.git" }
+twod = { git = "https://github.com/TransitionEngine/twod.git" }
 env_logger = "0.10"
 log = "0.4"
 image = "0.25.1"

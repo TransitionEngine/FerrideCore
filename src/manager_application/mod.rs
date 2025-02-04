@@ -9,29 +9,32 @@ use winit::{
 
 pub mod winit_reexports {
     pub use super::window_descriptor::winit_reexports::*;
-    pub use winit::event;
+    pub use super::event_manager::winit_reexports::*;
     pub use winit::keyboard;
-    pub use winit::event::{ElementState, MouseButton};
 }
 
+
 mod window_descriptor;
-pub use window_descriptor::WindowDescriptor;
-
-
+use window_descriptor::WindowDescriptor;
 mod event_manager;
-pub use event_manager::EventManager;
-pub use event_manager::MouseEvent;
-
+use event_manager::EventManager;
 mod window_manager;
-pub use window_manager::WindowManager;
-
+use window_manager::WindowManager;
 mod buffer;
-pub use buffer::{IndexBuffer, VertexBuffer, write_regular_ngon_u16};
+use buffer::{IndexBuffer, VertexBuffer};
 
-use crate::graphics_provider::{
+use crate::graphics::{
     GraphicsProvider, RenderSceneDescriptor, RenderSceneName, ShaderDescriptor, UniformBufferName,
     Visibility,
 };
+
+pub mod exports {
+    pub use super::window_descriptor::exports::*;
+    pub use super::window_manager::exports::*;
+    pub use super::buffer::exports::*;
+    pub use super::event_manager::exports::*;
+    pub use super::{ApplicationEvent, ManagerApplication};
+}
 
 pub struct ManagerApplication<E: ApplicationEvent + 'static, M: EventManager<E>> {
     event_manager: M,

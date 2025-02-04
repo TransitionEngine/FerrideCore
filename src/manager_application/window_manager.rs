@@ -5,6 +5,10 @@ use winit::{
     window::{Window, WindowId},
 };
 
+pub mod exports {
+    pub use super::WindowManager;
+}
+
 pub struct WindowManager<E: 'static + Debug> {
     windows: Vec<Window>,
     event_loop: Option<EventLoopProxy<E>>,

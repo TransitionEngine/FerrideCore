@@ -1,5 +1,9 @@
 use std::fmt::Debug;
 
+pub mod exports {
+    pub use super::{Index, Vertex};
+}
+
 pub trait Vertex:
     Debug + Clone + Copy + bytemuck::Pod + bytemuck::Zeroable + repr_trait::C
 {

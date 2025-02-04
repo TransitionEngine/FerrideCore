@@ -4,37 +4,27 @@ use std::{
 };
 
 use crate::{
-    app::{IndexBuffer, MouseEvent, VertexBuffer},
-    graphics_provider::ShaderDescriptor,
+    app::{EventManager, IndexBuffer, MouseEvent, VertexBuffer, WindowManager},
+    graphics::{GraphicsProvider, RenderSceneName, ShaderDescriptor, UniformBufferName},
+    Position, Size,
 };
 
-use super::{
-    app::{EventManager, WindowManager},
-    graphics::{GraphicsProvider, RenderSceneName, UniformBufferName},
-};
 use log::{info, warn};
 use winit::{
-    dpi::{PhysicalPosition, PhysicalSize},
     event::{DeviceId, WindowEvent},
     window::WindowId,
 };
 
-use self::camera::Camera;
-pub use self::{
-    bounding_box::BoundingBox,
-    camera::static_camera,
-    camera::CameraDescriptor,
-    entity::{Entity, EntityName, EntityType},
+use self::{
+    entity::Entity,
     game_event::{ExternalEvent, GameEvent},
     ressource_descriptor::{
-        RessourceDescriptor, RessourceDescriptorBuilder, SpriteSheetName, WindowName,
+        RessourceDescriptor, SpriteSheetName, WindowName,
     },
     scene::{Scene, SceneName},
-    sprite_sheet::{SpritePosition, SpriteSheet, SpriteSheetDimensions, TextureCoordinates},
-    velocity_controller::{Direction, VelocityController},
+    sprite_sheet::SpriteSheet,
 };
 
-mod color;
 pub mod example {
     pub use super::color::Color;
     pub use super::game_event::example::*;
@@ -42,10 +32,12 @@ pub mod example {
     pub use vertex::SimpleVertex;
 
     mod vertex {
-        use super::Color;
-        use crate::graphics::Vertex;
+        use crate::{
+            graphics::Vertex,
+            game_engine::Color,
+        };
         use repr_trait::C;
-        use threed::Vector;
+        use twod::Vector;
 
         #[repr(C)]
         #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable, repr_trait::C)]
@@ -71,9 +63,8 @@ pub mod example {
     }
 
     mod game_state {
-        use crate::game_engine::Scene;
+        use crate::game_engine::{Scene, State};
 
-        use super::super::State;
         use super::EmptyExternalEvent;
 
         pub struct SimpleGameState {
@@ -103,12 +94,25 @@ pub mod example {
 
 mod bounding_box;
 mod camera;
+mod color;
 mod entity;
 mod game_event;
 mod ressource_descriptor;
 mod scene;
 mod sprite_sheet;
 mod velocity_controller;
+
+pub mod exports {
+    pub use super::bounding_box::exports::*;
+    pub use super::camera::exports::*;
+    pub use super::color::exports::*;
+    pub use super::entity::exports::*;
+    pub use super::game_event::exports::*;
+    pub use super::ressource_descriptor::exports::*;
+    pub use super::scene::exports::*;
+    pub use super::sprite_sheet::exports::*;
+    pub use super::velocity_controller::exports::*;
+}
 
 pub trait State<E: ExternalEvent> {
     fn handle_event(&mut self, event: E) -> Vec<E>;
@@ -121,10 +125,9 @@ pub struct Game<E: ExternalEvent, S: State<E>> {
     pending_scenes: Vec<Scene<E>>,
     suspended_scenes: Vec<Scene<E>>,
     window_ids: Vec<(WindowName, WindowId)>,
-    window_sizes: Vec<(WindowId, PhysicalSize<u32>)>,
+    window_sizes: Vec<(WindowId, Size<u32>)>,
     sprite_sheets: Vec<(SpriteSheetName, SpriteSheet)>,
-    cameras: Vec<(SceneName, Camera, UniformBufferName)>,
-    cursors: Vec<(DeviceId, WindowId, PhysicalPosition<i32>)>,
+    cursors: Vec<(DeviceId, WindowId, Position<i32>)>,
     target_fps: u8,
     state: S,
 }
@@ -139,7 +142,6 @@ impl<E: ExternalEvent, S: State<E>> Game<E, S> {
             window_ids: Vec::new(),
             window_sizes: Vec::new(),
             sprite_sheets: Vec::new(),
-            cameras: Vec::new(),
             cursors: Vec::new(),
             target_fps,
             state,
@@ -169,7 +171,6 @@ impl<E: ExternalEvent, S: State<E>> Game<E, S> {
                 scenes_to_request.push((
                     id.clone(),
                     scene.render_scene.clone(),
-                    scene.name.clone(),
                     scene.shader_descriptor.clone(),
                 ));
             } else {
@@ -178,12 +179,11 @@ impl<E: ExternalEvent, S: State<E>> Game<E, S> {
                 }
             }
         }
-        for (window_id, render_scene, scene, shader_descriptor) in scenes_to_request {
+        for (window_id, render_scene, shader_descriptor) in scenes_to_request {
             self.request_render_scene(
                 &window_id,
                 window_manager,
                 render_scene,
-                scene,
                 shader_descriptor,
             );
         }
@@ -206,11 +206,10 @@ impl<E: ExternalEvent, S: State<E>> Game<E, S> {
         target_window: &WindowId,
         window_manager: &mut WindowManager<GameEvent<E>>,
         render_scene: RenderSceneName,
-        scene: SceneName,
         shader_descriptor: ShaderDescriptor,
     ) {
-        let (camera, render_scene_descriptor) = self.ressources.get_render_scene(&render_scene);
-        let mut uniform_buffers: Vec<(UniformBufferName, Vec<u8>, wgpu::ShaderStages)> =
+        let render_scene_descriptor = self.ressources.get_render_scene(&render_scene);
+        let uniform_buffers: Vec<(UniformBufferName, Vec<u8>, wgpu::ShaderStages)> =
             shader_descriptor
                 .uniforms
                 .iter()
@@ -223,14 +222,6 @@ impl<E: ExternalEvent, S: State<E>> Game<E, S> {
                         ))
                 })
                 .collect();
-        if let Some(camera_descriptor) = camera {
-            let camera: Camera = (&camera_descriptor).into();
-            let uniform_name = &format!("{:?} camera", render_scene.as_str());
-            let bytes = camera.as_bytes();
-            self.cameras
-                .push((scene.clone(), camera, uniform_name.into()));
-            uniform_buffers.push((uniform_name.into(), bytes, wgpu::ShaderStages::VERTEX));
-        };
         window_manager.send_event(GameEvent::RequestNewRenderScene(
             target_window.clone(),
             render_scene,
@@ -271,17 +262,14 @@ impl<E: ExternalEvent + 'static, S: State<E>> EventManager<GameEvent<E>> for Gam
             WindowEvent::Resized(size) => {
                 let window_size = self.window_sizes.iter_mut().find(|(i, _)| i == id);
                 if let Some((_, s)) = window_size {
-                    *s = *size
+                    *s = (*size).into()
                 } else {
-                    self.window_sizes.push((id.clone(), *size));
+                    self.window_sizes.push((id.clone(), (*size).into()));
                 }
             }
             WindowEvent::CursorEntered { device_id } => {
-                self.cursors.push((
-                    device_id.clone(),
-                    id.clone(),
-                    PhysicalPosition::new(0, 0),
-                ));
+                self.cursors
+                    .push((device_id.clone(), id.clone(), Position::new(0, 0)));
             }
             WindowEvent::CursorLeft { device_id } => {
                 self.cursors.retain(|(id, _, _)| id != device_id);
@@ -296,9 +284,9 @@ impl<E: ExternalEvent + 'static, S: State<E>> EventManager<GameEvent<E>> for Gam
                     .find(|(device, window, _)| device_id == device && window == id)
                 {
                     if let Some((_, size)) = self.window_sizes.iter().find(|(i, _)| i == id) {
-                        let position = PhysicalPosition::new(
-                            (position.x - size.width as f64 / 2.0) as i32,
-                            (position.y - size.height as f64 / 2.0) as i32,
+                        let position = Position::new(
+                            (position.x - size.width() as f64 / 2.0) as i32,
+                            (position.y - size.height() as f64 / 2.0) as i32,
                         );
                         *cursor_position = position;
                     }
@@ -324,7 +312,7 @@ impl<E: ExternalEvent + 'static, S: State<E>> EventManager<GameEvent<E>> for Gam
                             let events = scene.handle_mouse_input(&MouseEvent {
                                 state: *state,
                                 button: *button,
-                                position: *position,
+                                position: position.clone(),
                             });
                             for event in events {
                                 window_manager.send_event(GameEvent::External(event));
@@ -346,11 +334,6 @@ impl<E: ExternalEvent + 'static, S: State<E>> EventManager<GameEvent<E>> for Gam
                             .filter(|scene| scene.target_window == window_name)
                         {
                             let events = scene.handle_key_input(event);
-                            if let Some((_, camera, _)) =
-                                self.cameras.iter_mut().find(|(n, _, _)| n == &scene.name)
-                            {
-                                camera.handle_key_input(event);
-                            }
                             for event in events {
                                 window_manager.send_event(GameEvent::External(event));
                             }
@@ -403,7 +386,6 @@ impl<E: ExternalEvent + 'static, S: State<E>> EventManager<GameEvent<E>> for Gam
                             &id,
                             window_manager,
                             scene.render_scene.clone(),
-                            scene.name.clone(),
                             scene.shader_descriptor.clone(),
                         );
                     }
@@ -474,15 +456,6 @@ impl<E: ExternalEvent + 'static, S: State<E>> EventManager<GameEvent<E>> for Gam
                             .collect();
                         entity.render(&mut vertices, &mut indices, sprite_sheets);
                     }
-                    if let Some((_, camera, camera_name)) =
-                        self.cameras.iter_mut().find(|(n, _, _)| n == &scene.name)
-                    {
-                        match camera.update(entities.iter().map(|e| &*e).collect(), &delta_t) {
-                            Ok(()) => {}
-                            Err(err) => info!("Camera update failed: {}", err),
-                        };
-                        graphics_provider.update_uniform_buffer(camera_name, &camera.as_bytes());
-                    }
                     window_manager.send_event(GameEvent::RenderUpdate(
                         scene.render_scene.clone(),
                         vertices,
@@ -545,10 +518,6 @@ impl<E: ExternalEvent + 'static, S: State<E>> EventManager<GameEvent<E>> for Gam
                     {
                         let scene = self.active_scenes.remove(index);
                         self.suspended_scenes.push(scene);
-                        self.cameras
-                            .iter_mut()
-                            .filter(|(s, _, _)| s == suspendable_scene)
-                            .for_each(|(_, camera, _)| camera.reset_offset());
                     } else {
                         warn!(
                             "Tried to suspend Scene {:?}, but it is not active",
@@ -595,8 +564,6 @@ impl<E: ExternalEvent + 'static, S: State<E>> EventManager<GameEvent<E>> for Gam
                             deletable_scene
                         );
                     }
-                    self.cameras
-                        .retain(|(scene_name, _, _)| scene_name != deletable_scene);
                 }
                 if let Some((uniform_name, contents)) = event.is_update_uniform_buffer() {
                     graphics_provider.update_uniform_buffer(uniform_name, contents);

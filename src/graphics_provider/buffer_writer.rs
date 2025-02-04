@@ -3,6 +3,10 @@ use std::iter;
 use wgpu::util::DeviceExt;
 use wgpu::COPY_BUFFER_ALIGNMENT;
 
+pub mod exports {
+    pub use super::{BufferWriter, IndexBufferWriter, VertexBufferWriter};
+}
+
 pub trait BufferWriter {
     fn buffer_data<'a>(&'a self) -> Option<&'a [u8]>;
     fn buffer_len(&self) -> u32;

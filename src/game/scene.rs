@@ -10,6 +10,10 @@ use super::{
     SpriteSheetName,
 };
 
+pub mod exports {
+    pub use super::{Scene, SceneName};
+}
+
 create_name_struct!(SceneName);
 
 #[derive(Debug)]

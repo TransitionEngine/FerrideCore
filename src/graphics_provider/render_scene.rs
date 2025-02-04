@@ -4,6 +4,12 @@ use crate::create_name_struct;
 
 use super::{IndexBufferWriter, VertexBufferWriter, Visibility};
 
+pub mod exports {
+    pub use super::RenderSceneDescriptor;
+    pub use super::RenderSceneName;
+    pub use super::UniformBufferName;
+}
+
 create_name_struct!(RenderSceneName);
 create_name_struct!(UniformBufferName);
 

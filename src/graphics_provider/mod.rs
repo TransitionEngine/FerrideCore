@@ -6,24 +6,25 @@ use wgpu::rwh::{HasRawDisplayHandle, HasRawWindowHandle};
 use winit::window::{Window, WindowId};
 
 mod buffer_primitives;
-pub use buffer_primitives::{Index, Vertex};
-
 mod surface;
 use surface::{Surface, WindowSurface};
-
 mod shader_descriptor;
-pub use shader_descriptor::ShaderDescriptor;
-
+use shader_descriptor::ShaderDescriptor;
 mod texture;
-pub use texture::DEFAULT_TEXTURE;
 use texture::TextureProvider;
-
 mod buffer_writer;
-pub use buffer_writer::{BufferWriter, IndexBufferWriter, VertexBufferWriter};
-
+use buffer_writer::{IndexBufferWriter, VertexBufferWriter};
 mod render_scene;
-use render_scene::RenderScene;
-pub use render_scene::{RenderSceneDescriptor, RenderSceneName, UniformBufferName};
+use render_scene::{RenderScene, RenderSceneDescriptor, RenderSceneName, UniformBufferName};
+
+pub mod exports {
+    pub use super::shader_descriptor::exports::*;
+    pub use super::render_scene::exports::*;
+    pub use super::buffer_writer::exports::*;
+    pub use super::buffer_primitives::exports::*;
+    pub use super::texture::exports::*;
+    pub use super::{GraphicsProvider, Visibility};
+}
 
 #[derive(Debug, Clone)]
 pub enum Visibility {

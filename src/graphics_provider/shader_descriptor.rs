@@ -1,3 +1,7 @@
+pub mod exports {
+    pub use super::ShaderDescriptor;
+}
+
 #[derive(Debug, Clone)]
 pub struct ShaderDescriptor {
     pub file: &'static str,

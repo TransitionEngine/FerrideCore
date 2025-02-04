@@ -1,4 +1,8 @@
-use threed::Vector;
+use twod::Vector;
+
+pub mod exports {
+    pub use super::{Direction, VelocityController};
+}
 
 pub enum Direction {
     Up,
@@ -50,7 +54,7 @@ impl VelocityController {
     }
 
     pub fn get_velocity(&self) -> Vector<f32> {
-        let mut velocity = Vector::new(0.0, 0.0, 0.0);
+        let mut velocity = Vector::new(0.0, 0.0);
         if self.up {
             velocity.y += 1.0;
         }

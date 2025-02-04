@@ -1,3 +1,7 @@
+pub mod exports {
+    pub use super::{SpritePosition, SpriteSheet, SpriteSheetDimensions, TextureCoordinates};
+}
+
 #[derive(Debug)]
 pub struct TextureCoordinates {
     pub u: f32,

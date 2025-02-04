@@ -1,19 +1,24 @@
 use crate::{
     app::{IndexBuffer, MouseEvent, VertexBuffer},
+    game_engine::BoundingBox,
     create_name_struct,
 };
 use std::{fmt::Debug, time::Duration};
-use threed::Vector;
+use twod::Vector;
 use winit::event::KeyEvent;
 
 use super::{
-    ressource_descriptor::SpriteSheetName, sprite_sheet::SpriteSheet, BoundingBox, ExternalEvent,
+    ressource_descriptor::SpriteSheetName, sprite_sheet::SpriteSheet, ExternalEvent,
     SceneName,
 };
 
+pub mod exports {
+    pub use super::{Entity, EntityName, EntityType};
+}
+
 create_name_struct!(EntityName);
 
-pub trait EntityType: PartialEq + Debug {}
+pub trait EntityType: PartialEq + Debug + Default {}
 
 pub trait Entity<T: EntityType, E: ExternalEvent>: Debug + Send {
     fn update(
@@ -42,7 +47,7 @@ pub trait Entity<T: EntityType, E: ExternalEvent>: Debug + Send {
     fn entity_type(&self) -> T;
 
     fn z(&self) -> f32 {
-        self.position().z
+        0.0
     }
     fn position(&self) -> Vector<f32> {
         self.bounding_box().anchor

@@ -1,16 +1,25 @@
 use std::fmt::Debug;
 
-use winit::{dpi::PhysicalPosition, event::{ElementState, MouseButton, WindowEvent}, event_loop::ActiveEventLoop, window::WindowId};
+use winit::{event::{ElementState, MouseButton, WindowEvent}, event_loop::ActiveEventLoop, window::WindowId};
+pub mod winit_reexports {
+    pub use winit::event;
+    pub use winit::event::{ElementState, MouseButton};
+}
 
-use crate::graphics_provider::GraphicsProvider;
+pub mod exports {
+    pub use super::EventManager;
+    pub use super::MouseEvent;
+}
 
-use super::WindowManager;
+use crate::{graphics_provider::GraphicsProvider, Position};
+
+use super::window_manager::WindowManager;
 
 #[derive(Debug)]
 pub struct MouseEvent {
     pub state: ElementState,
     pub button: MouseButton,
-    pub position: PhysicalPosition<i32>
+    pub position: Position<i32>
 }
 
 pub trait EventManager<E: 'static + Debug> {

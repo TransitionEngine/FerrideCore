@@ -1,16 +1,18 @@
+use crate::{Numeric, Position, Size};
 use image::imageops::{resize, FilterType};
 use std::fs;
 pub mod winit_reexports {
-    pub use winit::{
-        dpi::{Position, Size},
-        window::{Fullscreen, Icon, Theme, WindowButtons, WindowLevel},
-    };
+    pub use winit:: window::{Fullscreen, Icon, Theme, WindowButtons, WindowLevel};
 }
 use winit::{
     event_loop::ActiveEventLoop,
     window::{CustomCursor, CustomCursorSource, WindowAttributes},
 };
 use winit_reexports::*;
+
+pub mod exports {
+    pub use super::WindowDescriptor;
+}
 
 #[derive(Clone, Debug)]
 pub struct WindowDescriptor {
@@ -87,20 +89,20 @@ impl Default for WindowDescriptor {
 }
 ///reimpl functions for WindowAttributes
 impl WindowDescriptor {
-    pub fn with_inner_size<S: Into<Size>>(mut self, size: S) -> Self {
-        self.attributes = self.attributes.with_inner_size(size);
+    pub fn with_inner_size<T: Numeric, S: Into<Size<T>>>(mut self, size: S) -> Self {
+        self.attributes = self.attributes.with_inner_size(size.into());
         self
     }
-    pub fn with_min_inner_size<S: Into<Size>>(mut self, min_size: S) -> Self {
-        self.attributes = self.attributes.with_min_inner_size(min_size);
+    pub fn with_min_inner_size<T: Numeric, S: Into<Size<T>>>(mut self, min_size: S) -> Self {
+        self.attributes = self.attributes.with_min_inner_size(min_size.into());
         self
     }
-    pub fn with_max_inner_size<S: Into<Size>>(mut self, max_size: S) -> Self {
-        self.attributes = self.attributes.with_max_inner_size(max_size);
+    pub fn with_max_inner_size<T: Numeric, S: Into<Size<T>>>(mut self, max_size: S) -> Self {
+        self.attributes = self.attributes.with_max_inner_size(max_size.into());
         self
     }
-    pub fn with_position<P: Into<Position>>(mut self, position: P) -> Self {
-        self.attributes = self.attributes.with_position(position);
+    pub fn with_position<T: Numeric, P: Into<Position<T>>>(mut self, position: P) -> Self {
+        self.attributes = self.attributes.with_position(position.into());
         self
     }
     pub fn with_resizable(mut self, resizable: bool) -> Self {
@@ -147,8 +149,8 @@ impl WindowDescriptor {
         self.attributes = self.attributes.with_theme(theme);
         self
     }
-    pub fn with_resize_increments<S: Into<Size>>(mut self, resize_increments: S) -> Self {
-        self.attributes = self.attributes.with_resize_increments(resize_increments);
+    pub fn with_resize_increments<T: Numeric, S: Into<Size<T>>>(mut self, resize_increments: S) -> Self {
+        self.attributes = self.attributes.with_resize_increments(resize_increments.into());
         self
     }
     pub fn with_content_protected(mut self, protected: bool) -> Self {

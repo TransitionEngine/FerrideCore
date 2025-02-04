@@ -2,13 +2,17 @@ use std::path::PathBuf;
 
 use log::info;
 
-use crate::app::WindowDescriptor;
-use crate::create_name_struct;
-
-use crate::game_engine::CameraDescriptor;
-use crate::graphics_provider::{RenderSceneDescriptor, RenderSceneName, UniformBufferName};
+use crate::{
+    app::WindowDescriptor,
+    create_name_struct,
+    graphics::{RenderSceneDescriptor, RenderSceneName, UniformBufferName},
+};
 
 use super::sprite_sheet::SpriteSheetDimensions;
+
+pub mod exports {
+    pub use super::{RessourceDescriptor, RessourceDescriptorBuilder, SpriteSheetName, WindowName};
+}
 
 pub struct RessourceDescriptorBuilder {
     pub ressources: RessourceDescriptor,
@@ -21,7 +25,7 @@ impl RessourceDescriptorBuilder {
                 image_directory: PathBuf::from(""),
                 sprite_sheets: vec![],
                 uniforms: vec![],
-                default_render_scene: (None, default_render_scene),
+                default_render_scene,
                 render_scenes: vec![],
             },
         }
@@ -56,14 +60,9 @@ impl RessourceDescriptorBuilder {
     }
     pub fn with_default_render_scene(
         mut self,
-        camera: Option<CameraDescriptor>,
         render_scene: RenderSceneDescriptor,
     ) -> Self {
-        self.ressources.default_render_scene = (camera, render_scene);
-        self
-    }
-    pub fn with_default_render_scene_camera(mut self, camera: CameraDescriptor) -> Self {
-        self.ressources.default_render_scene.0 = Some(camera);
+        self.ressources.default_render_scene = render_scene;
         self
     }
 }
@@ -74,12 +73,10 @@ pub struct RessourceDescriptor {
     /// self.image_directory + n + ".png", (1, 1))
     pub image_directory: PathBuf,
     pub sprite_sheets: Vec<(SpriteSheetName, PathBuf, SpriteSheetDimensions)>,
-    ///describes UniformBuffers that are not Cameras, because of their elevated
     pub uniforms: Vec<(UniformBufferName, Vec<u8>, wgpu::ShaderStages)>,
-    pub default_render_scene: (Option<CameraDescriptor>, RenderSceneDescriptor),
+    pub default_render_scene: RenderSceneDescriptor,
     pub render_scenes: Vec<(
         Vec<RenderSceneName>,
-        Option<CameraDescriptor>,
         RenderSceneDescriptor,
     )>,
 }
@@ -102,12 +99,12 @@ impl RessourceDescriptor {
     pub fn get_render_scene(
         &self,
         name: &RenderSceneName,
-    ) -> (Option<CameraDescriptor>, RenderSceneDescriptor) {
+    ) -> RenderSceneDescriptor {
         let rs = self
             .render_scenes
             .iter()
-            .find(|(render_scenes, _, _)| render_scenes.contains(name))
-            .map(|(_, camera, descriptor)| (camera.clone(), descriptor.clone()));
+            .find(|(render_scenes, _)| render_scenes.contains(name))
+            .map(|(_, descriptor)| descriptor.clone());
         if let Some(render_scene) = rs {
             render_scene
         } else {
@@ -134,5 +131,5 @@ impl RessourceDescriptor {
     }
 }
 
-create_name_struct!(SpriteSheetName);
 create_name_struct!(WindowName);
+create_name_struct!(SpriteSheetName);

@@ -1,6 +1,12 @@
-use crate::graphics_provider::{
+use crate::graphics::{
     BufferWriter, Index, IndexBufferWriter, Vertex, VertexBufferWriter,
 };
+
+pub mod exports {
+    pub use super::IndexBuffer;
+    pub use super::VertexBuffer;
+    pub use super::write_regular_ngon_u16;
+}
 
 #[derive(Debug)]
 pub struct IndexBuffer {

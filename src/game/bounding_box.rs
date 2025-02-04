@@ -1,5 +1,9 @@
-use threed::Vector;
-use winit::dpi::PhysicalSize;
+use twod::Vector;
+use crate::Size;
+
+pub mod exports {
+    pub use super::BoundingBox;
+}
 
 ///Bounding Box defined by middle point and width and height
 ///The negative sides (anchor - size/2) and the positive sides (anchor + size/2) are inclusive
@@ -7,28 +11,28 @@ use winit::dpi::PhysicalSize;
 pub struct BoundingBox {
     ///Middle point
     pub anchor: Vector<f32>,
-    pub size: PhysicalSize<f32>,
+    pub size: Size<f32>,
 }
 impl BoundingBox {
     fn contains_point(&self, point: &Vector<f32>) -> bool {
         let offset = point - &self.anchor;
-        let width = self.size.width / 2.0;
-        let height = self.size.height / 2.0;
+        let width = self.size.width() / 2.0;
+        let height = self.size.height() / 2.0;
         offset.x >= -width && offset.x <= width && offset.y >= -height && offset.y <= height
     }
 
     fn contains_box(&self, other: &BoundingBox) -> bool {
-        let offset = Vector::new(other.size.width, other.size.height, 0.0) / 2.0;
+        let offset = Vector::new(other.size.width(), other.size.height()) / 2.0;
         let top_left = &other.anchor - &offset;
         let bottom_right = &other.anchor + &offset;
         self.contains_point(&top_left) && self.contains_point(&bottom_right)
     }
 
     pub fn intersects(&self, other: &BoundingBox) -> bool {
-        let s_width = self.size.width / 2.0;
-        let s_height = self.size.height / 2.0;
-        let o_width = other.size.width / 2.0;
-        let o_height = other.size.height / 2.0;
+        let s_width = self.size.width() / 2.0;
+        let s_height = self.size.height() / 2.0;
+        let o_width = other.size.width() / 2.0;
+        let o_height = other.size.height() / 2.0;
         self.anchor.x - s_width < other.anchor.x + o_width
             && self.anchor.x + s_width > other.anchor.x - o_width
             && self.anchor.y - s_height < other.anchor.y + o_height
@@ -42,8 +46,8 @@ impl BoundingBox {
         if self.contains_box(other) {
             None
         } else {
-            let x = if other.size.width < self.size.width {
-                let size_difference = (other.size.width - self.size.width) / 2.0;
+            let x = if other.size.width() < self.size.width() {
+                let size_difference = (other.size.width() - self.size.width()) / 2.0;
                 let left_distance = self.anchor.x - other.anchor.x;
 
                 other.anchor.x
@@ -57,8 +61,8 @@ impl BoundingBox {
             } else {
                 self.anchor.x
             };
-            let y = if other.size.height < self.size.height {
-                let size_difference = (other.size.height - self.size.height) / 2.0;
+            let y = if other.size.height() < self.size.height() {
+                let size_difference = (other.size.height() - self.size.height()) / 2.0;
                 let top_distance = self.anchor.y - other.anchor.y;
 
                 other.anchor.y
@@ -72,7 +76,7 @@ impl BoundingBox {
             } else {
                 self.anchor.y
             };
-            let inside_anchor = Vector::new(x, y, 0.0);
+            let inside_anchor = Vector::new(x, y);
             Some(inside_anchor)
         }
     }
@@ -85,12 +89,12 @@ mod tests {
     #[test]
     fn contains_box() {
         let bb = BoundingBox {
-            anchor: Vector::new(0.0, 0.0, 0.0),
-            size: PhysicalSize::new(800.0, 600.0),
+            anchor: Vector::new(0.0, 0.0),
+            size: Size::new(800.0, 600.0),
         };
-        assert!(bb.contains_point(&Vector::new(0.0, 0.0, 0.0)));
-        assert!(bb.contains_point(&Vector::new(-400.0, -300.0, 0.0)));
-        assert!(bb.contains_point(&Vector::new(400.0, 300.0, 0.0)));
+        assert!(bb.contains_point(&Vector::new(0.0, 0.0)));
+        assert!(bb.contains_point(&Vector::new(-400.0, -300.0)));
+        assert!(bb.contains_point(&Vector::new(400.0, 300.0)));
         assert!(bb.contains_box(&bb));
     }
 }

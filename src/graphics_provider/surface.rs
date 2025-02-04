@@ -3,6 +3,9 @@ use std::fmt::Debug;
 
 use super::RenderScene;
 
+pub  mod exports {
+}
+
 pub trait WindowSurface: Debug {
     fn surface<'a, 'b: 'a>(&'b self) -> &'a wgpu::Surface<'a>;
     fn config(&self) -> &wgpu::SurfaceConfiguration;

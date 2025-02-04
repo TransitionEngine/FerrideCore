@@ -4,17 +4,22 @@ use std::{
     time::Duration,
 };
 
-use crate::app::{IndexBuffer, VertexBuffer};
-use crate::graphics_provider::{RenderSceneDescriptor, UniformBufferName, Visibility};
 use crate::{
-    app::{ApplicationEvent, WindowDescriptor},
-    graphics::{RenderSceneName, ShaderDescriptor},
+    app::{ApplicationEvent, IndexBuffer, VertexBuffer, WindowDescriptor},
+    graphics::{
+        RenderSceneDescriptor, RenderSceneName, ShaderDescriptor, UniformBufferName, Visibility,
+    },
+    game_engine::{EntityName, EntityType},
 };
 use winit::window::WindowId;
 
-use super::{Entity, EntityName, EntityType, Scene, SceneName};
+use super::{Entity, Scene, SceneName};
 
 use super::ressource_descriptor::{SpriteSheetName, WindowName};
+
+pub mod exports {
+    pub use super::ExternalEvent;
+}
 
 #[derive(Debug)]
 pub enum GameEvent<E: ExternalEvent> {
@@ -130,7 +135,7 @@ impl<E: ExternalEvent> ApplicationEvent for GameEvent<E> {
     }
 }
 
-pub trait ExternalEvent: Debug + Send {
+pub trait ExternalEvent: Debug + Send + Default {
     type EntityType: EntityType;
     type EntityEvent: Debug;
     fn is_request_render_scene<'a>(&'a self) -> Option<&'a SceneName>;
@@ -153,6 +158,9 @@ pub trait ExternalEvent: Debug + Send {
     where
         Self: Sized;
     fn is_update_uniform_buffer<'a>(&'a self) -> Option<(&'a UniformBufferName, &'a [u8])>;
+    fn update_uniform_buffer(name: UniformBufferName, data: Vec<u8>) -> Self
+    where
+        Self: Sized;
     fn is_delete_entity<'a>(&'a self) -> Option<(&'a EntityName, &'a SceneName)>;
     fn is_add_entities<'a>(&'a self) -> bool;
     /// Should only be called if is_add_entities returns true
@@ -164,19 +172,20 @@ pub trait ExternalEvent: Debug + Send {
     fn is_end_game(&self) -> bool;
 }
 
-
 pub mod example {
     use super::*;
 
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq, Default)]
     pub enum EmptyEntityType {
+        #[default]
         Entity,
     }
     impl EntityType for EmptyEntityType {}
     #[derive(Debug)]
     pub enum EmptyEntityEvent {}
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     pub enum EmptyExternalEvent {
+        #[default]
         Empty,
     }
     impl ExternalEvent for EmptyExternalEvent {
@@ -256,6 +265,9 @@ pub mod example {
             &'a self,
         ) -> Option<(&'a crate::graphics::UniformBufferName, &'a [u8])> {
             None
+        }
+        fn update_uniform_buffer(_name: UniformBufferName, _data: Vec<u8>) -> Self {
+            Self::Empty
         }
     }
 }
