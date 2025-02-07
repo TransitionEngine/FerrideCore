@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 pub mod exports {
     pub use super::Color;
 }
@@ -25,20 +27,20 @@ impl Color {
         )
     }
 
-    pub fn from_str(color_name: &str) -> Self {
+    pub fn from_name(color_name: &str) -> Result<Self, String> {
         match color_name {
-            "black" => Self::new_rgba(0, 0, 0, 255),
-            "white" => Self::new_rgba(255, 255, 255, 255),
-            "red" => Self::new_rgba(255, 0, 0, 255),
-            "blue" => Self::new_rgba(0, 0, 255, 255),
-            "green" => Self::new_rgba(0, 255, 0, 255),
-            "purple" => Self::new_rgba(170, 0, 140, 255),
-            "whine_red" => Self::new_rgba(88, 24, 31, 255),
-            "orange" => Self::new_rgba(220, 115, 0, 255),
-            "grey" => Self::new_rgba(80, 80, 80, 255),
-            "yellow" => Self::new_rgba(255, 255, 0, 255),
-            "pink" => Self::new_rgba(230, 120, 140, 255),
-            x => panic!("Unknown color name '{}'", x),
+            "black" => Ok(Self::new_rgba(0, 0, 0, 255)),
+            "white" => Ok(Self::new_rgba(255, 255, 255, 255)),
+            "red" => Ok(Self::new_rgba(255, 0, 0, 255)),
+            "blue" => Ok(Self::new_rgba(0, 0, 255, 255)),
+            "green" => Ok(Self::new_rgba(0, 255, 0, 255)),
+            "purple" => Ok(Self::new_rgba(170, 0, 140, 255)),
+            "whine_red" => Ok(Self::new_rgba(88, 24, 31, 255)),
+            "orange" => Ok(Self::new_rgba(220, 115, 0, 255)),
+            "grey" => Ok(Self::new_rgba(80, 80, 80, 255)),
+            "yellow" => Ok(Self::new_rgba(255, 255, 0, 255)),
+            "pink" => Ok(Self::new_rgba(230, 120, 140, 255)),
+            x => Err(format!("Unknown color name '{}'", x)),
         }
     }
 
@@ -103,9 +105,43 @@ impl Color {
         }
     }
 }
-impl From<&str> for Color {
-    fn from(value: &str) -> Self {
-        Self::from_str(value)
+impl FromStr for Color {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.strip_suffix(")") {
+            Some(rgb_or_hsv) => match rgb_or_hsv.split_once("rgba(") {
+                Some((_, c)) => {
+                    let splits = c.splitn(4, ",").map(|v| match v.trim().parse::<u8>() {
+                        Ok(c) => (c, true),
+                        Err(_) => (0, false),
+                    }).collect::<Vec<_>>();
+                    if splits.len() != 4 {
+                        Err(format!("Invalid color variant expected 'rgba(r, g, b, a)' but encountered: {}", s))
+                    } else if splits.iter().any(|(_, success)| !success) {
+                        Err(format!("Invalid value expected, r, g, b, a in [0, 255] but encountered: {}", s))
+                    } else {
+                        Ok(Self::new_rgba(splits[0].0, splits[1].0, splits[2].0, splits[3].0))
+                    }
+                },
+                None => match rgb_or_hsv.split_once("hsva(") {
+                    Some((_, c)) => {
+                        let splits = c.splitn(4, ",").map(|v| match v.trim().parse::<u8>() {
+                            Ok(c) => (c, true),
+                            Err(_) => (0, false),
+                        }).collect::<Vec<_>>();
+                        if splits.len() != 4 {
+                            Err(format!("Invalid color variant expected 'hsva(h, s, v, a)' but encountered: {}", s))
+                        } else if splits.iter().any(|(_, success)| !success) {
+                            Err(format!("Invalid value expected, h, s, v, a in [0, 255] but encountered: {}", s))
+                        } else {
+                            Ok(Self::new_hsva(splits[0].0, splits[1].0, splits[2].0, splits[3].0))
+                        }
+                        },
+                    None => Err(format!("Invalid color variant expected 'rgba(r, g, b, a)' or 'hsva(h, s, v, a)' but encountered: {}", s))
+                }
+            },
+            None => Self::from_name(s),
+        }
     }
 }
 
